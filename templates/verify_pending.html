@@ -4,8 +4,9 @@
 <div class="card">
   <h1>Check your inbox</h1>
   <p>We sent a verification link to <strong>{{ email }}</strong>.
-     Click it within 24 hours to activate your account.</p>
-  <p class="muted">Wrong address or no email? You can request a new link from the
+     It expires in 24 hours.</p>
+  {% if blurb %}<p>{{ blurb }}</p>{% endif %}
+  <p class="muted">No email? You can resend from the
      <a href="{{ url_for('auth.login') }}">login page</a>.</p>
 </div>
 {% endblock %}

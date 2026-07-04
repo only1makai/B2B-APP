@@ -17,11 +17,11 @@ from models import (
 
 # --- Students ---
 
-def create_student(name, email, password, campus, year,
+def create_student(name, edu_email, password, campus, year,
                    interests=None, social_handles=None, consent_given_at=None):
     student = Student(
         name=name,
-        email=email.strip().lower(),
+        edu_email=edu_email.strip().lower(),
         campus=campus,
         year=year,
         interests=interests or [],
@@ -38,8 +38,12 @@ def get_student_by_id(student_id):
     return db.session.get(Student, student_id)
 
 
-def get_student_by_email(email):
-    return Student.query.filter_by(email=email.strip().lower()).first()
+def get_student_by_edu_email(email):
+    return Student.query.filter_by(edu_email=email.strip().lower()).first()
+
+
+def get_student_by_personal_email(email):
+    return Student.query.filter_by(personal_email=email.strip().lower()).first()
 
 
 def set_course_visibility(student_id, visibility):
@@ -72,11 +76,31 @@ def delete_student_and_data(student_id):
     return True
 
 
-def mark_email_verified(student_id):
+def mark_edu_verified(student_id):
     student = db.session.get(Student, student_id)
     if not student:
         return None
-    student.email_verified = True
+    student.edu_verified = True
+    db.session.commit()
+    return student
+
+
+def set_personal_email(student_id, email):
+    """Setting (or changing) the personal address always re-arms verification."""
+    student = db.session.get(Student, student_id)
+    if not student:
+        return None
+    student.personal_email = email.strip().lower()
+    student.personal_verified = False
+    db.session.commit()
+    return student
+
+
+def mark_personal_verified(student_id):
+    student = db.session.get(Student, student_id)
+    if not student:
+        return None
+    student.personal_verified = True
     db.session.commit()
     return student
 

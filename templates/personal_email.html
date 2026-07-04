@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Add personal email — B2B{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Last step: your login email</h1>
+  <p>Your campus address <strong>{{ student.edu_email }}</strong> is verified —
+     that's your proof of student status and we won't use it again.
+     Add the personal email you'll log in with (any provider).</p>
+  <form method="post" action="{{ url_for('auth.personal_email_step') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Personal email
+      <input type="email" name="personal_email" required placeholder="you@gmail.com"
+             value="{{ request.form.get('personal_email', '') }}">
+    </label>
+    <button type="submit" class="primary">Send verification link</button>
+  </form>
+</div>
+{% endblock %}

@@ -7,8 +7,9 @@
 <form method="post" action="{{ url_for('auth.login') }}" class="card">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <h2>Log in</h2>
-  <label>Campus email
-    <input type="email" name="email" required autocomplete="username">
+  <label>Personal email
+    <input type="email" name="email" required autocomplete="username"
+           placeholder="you@gmail.com">
   </label>
   <label>Password
     <input type="password" name="password" required autocomplete="current-password">
@@ -18,10 +19,26 @@
 </form>
 
 <details class="card">
-  <summary>Didn't get your verification email?</summary>
+  <summary>Signed up but didn't finish setup?</summary>
+  <p class="muted">Enter your <strong>campus</strong> email and password — we'll
+     pick up wherever you left off.</p>
+  <form method="post" action="{{ url_for('auth.resume_setup') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>UC campus email
+      <input type="email" name="edu_email" required>
+    </label>
+    <label>Password
+      <input type="password" name="password" required>
+    </label>
+    <button type="submit">Resume setup</button>
+  </form>
+</details>
+
+<details class="card">
+  <summary>Never got the first verification email?</summary>
   <form method="post" action="{{ url_for('auth.resend_verification') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>Campus email
+    <label>UC campus email
       <input type="email" name="email" required>
     </label>
     <button type="submit">Resend verification link</button>

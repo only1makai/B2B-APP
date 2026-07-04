@@ -9,10 +9,12 @@
     <input type="text" name="name" required value="{{ request.form.get('name', '') }}">
   </label>
   <label>UC campus email
-    <input type="email" name="email" required value="{{ request.form.get('email', '') }}"
+    <input type="email" name="edu_email" required value="{{ request.form.get('edu_email', '') }}"
            placeholder="you@ucsc.edu">
   </label>
-  <label>Password <span class="muted">(8+ characters)</span>
+  <p class="muted">Used once to verify you're a UC student — never to log in.
+     After verifying, you'll add a personal email that becomes your login.</p>
+  <label>Password <span class="muted">(8+ characters — your account password)</span>
     <input type="password" name="password" required minlength="8" autocomplete="new-password">
   </label>
   <label>Campus

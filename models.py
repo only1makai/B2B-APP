@@ -29,7 +29,15 @@ class Student(db.Model):
 
     id = db.Column(db.String(36), primary_key=True, default=new_uuid)
     name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(255), unique=True, nullable=False)
+    # Two-email identity (Makai, 2026-07-03):
+    # - edu_email: UC campus address, magic-link verified once as proof of
+    #   student status. NEVER a login credential after verification.
+    # - personal_email: the login identity, separately magic-link verified.
+    #   Account is fully active only when both are verified.
+    edu_email = db.Column(db.String(255), unique=True, nullable=False)
+    personal_email = db.Column(db.String(255), unique=True, nullable=True)
+    edu_verified = db.Column(db.Boolean, nullable=False, default=False)
+    personal_verified = db.Column(db.Boolean, nullable=False, default=False)
     password_hash = db.Column(db.String(255), nullable=False)
     campus = db.Column(db.String(20), nullable=False)
     year = db.Column(db.String(20), nullable=False)
@@ -40,10 +48,12 @@ class Student(db.Model):
     consent_given_at = db.Column(db.String(40), nullable=True)
     # FERPA user control: "hidden" students never appear in peer discovery.
     course_visibility = db.Column(db.String(10), nullable=False, default="peers")
-    # Campus-email verification gate: unverified accounts cannot log in and
-    # must never surface in peer discovery.
-    email_verified = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.String(40), nullable=False, default=now_iso)
+
+    @property
+    def is_fully_active(self):
+        """Login and peer-discovery eligibility gate."""
+        return bool(self.edu_verified and self.personal_email and self.personal_verified)
 
     @validates("campus")
     def validate_campus(self, key, value):

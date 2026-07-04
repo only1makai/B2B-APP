@@ -12,15 +12,20 @@ from services import mailer
 
 auth_bp = Blueprint("auth", __name__)
 
-# Registration allowlist (Makai, 2026-07-03). NOTE before pilot: UCLA issues
-# student mail on g.ucla.edu — this list will reject real UCLA students until
-# confirmed/extended with real campus test accounts.
+# Registration allowlist for edu_email ONLY (personal_email accepts anything).
+# g.ucla.edu is UCLA's student mail domain; ucla.edu kept for grad/other
+# affiliations. Confirm remaining campuses with real accounts before pilot.
 ALLOWED_EMAIL_DOMAINS = (
-    "ucsc.edu", "ucla.edu", "ucsd.edu", "berkeley.edu", "ucdavis.edu",
-    "uci.edu", "ucsb.edu", "ucr.edu", "ucmerced.edu",
+    "ucsc.edu", "ucla.edu", "g.ucla.edu", "ucsd.edu", "berkeley.edu",
+    "ucdavis.edu", "uci.edu", "ucsb.edu", "ucr.edu", "ucmerced.edu",
 )
 
-VERIFY_TOKEN_MAX_AGE = 24 * 60 * 60  # 24h (spec: link expires in 24 hours)
+VERIFY_TOKEN_MAX_AGE = 24 * 60 * 60  # 24h
+
+# The edu address proves UC affiliation, once. It is never a login
+# credential and no password is ever collected for it: clicking a link only
+# that inbox could receive is the entire proof of ownership. Login is
+# personal_email + the account password set at registration.
 
 
 def login_required(view):
@@ -30,23 +35,44 @@ def login_required(view):
         student_id = session.get("student_id")
         if student_id:
             student = repository.get_student_by_id(student_id)
-        if not student:
-            session.clear()
+        if not student or not student.is_fully_active:
+            # Drop only the stale login key — clearing the whole session here
+            # would destroy an in-progress onboarding session.
+            session.pop("student_id", None)
             return redirect(url_for("auth.login"))
         g.student = student
         return view(*args, **kwargs)
     return wrapped
 
 
-def _serializer():
-    return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt="email-verify")
+def _serializer(salt):
+    return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt=salt)
 
 
-def _send_verification(student):
-    token = _serializer().dumps(student.id)
-    verify_url = url_for("auth.verify_email", token=token, _external=True)
-    mailer.send_verification_email(student.email, verify_url)
+def _send_edu_verification(student):
+    token = _serializer("edu-verify").dumps(student.id)
+    verify_url = url_for("auth.verify_edu", token=token, _external=True)
+    mailer.send_verification_email(student.edu_email, verify_url)
 
+
+def _send_personal_verification(student):
+    token = _serializer("personal-verify").dumps(
+        {"sid": student.id, "email": student.personal_email}
+    )
+    verify_url = url_for("auth.verify_personal", token=token, _external=True)
+    mailer.send_verification_email(student.personal_email, verify_url)
+
+
+def _load_token(salt, token):
+    try:
+        return _serializer(salt).loads(token, max_age=VERIFY_TOKEN_MAX_AGE), None
+    except SignatureExpired:
+        return None, "That verification link has expired. Request a new one."
+    except BadSignature:
+        return None, "Invalid verification link."
+
+
+# --- Step 1: register with campus email (verification-only) + password ---
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
@@ -54,7 +80,7 @@ def register():
         return render_template("register.html", campuses=CAMPUSES)
 
     name = (request.form.get("name") or "").strip()
-    email = (request.form.get("email") or "").strip().lower()
+    edu_email = (request.form.get("edu_email") or "").strip().lower()
     password = request.form.get("password") or ""
     campus = request.form.get("campus") or ""
     year = (request.form.get("year") or "").strip()
@@ -64,11 +90,11 @@ def register():
         flash(message, "error")
         return render_template("register.html", campuses=CAMPUSES), 400
 
-    if not all([name, email, password, campus, year]):
+    if not all([name, edu_email, password, campus, year]):
         return fail("All fields are required.")
-    if "@" not in email:
+    if "@" not in edu_email:
         return fail("Enter a valid email address.")
-    domain = email.rsplit("@", 1)[1]
+    domain = edu_email.rsplit("@", 1)[1]
     if domain not in ALLOWED_EMAIL_DOMAINS:
         return fail(
             "Registration requires a UC campus email address "
@@ -83,46 +109,147 @@ def register():
             "B2B cannot create your account without your consent to share "
             "your course enrollments for peer matching (FERPA)."
         )
-    if repository.get_student_by_email(email):
-        return fail("An account with this email already exists. Try logging in.")
+    if repository.get_student_by_edu_email(edu_email):
+        return fail("An account with this campus email already exists. "
+                    "Use 'Resume setup' on the login page if yours is unfinished.")
 
     student = repository.create_student(
-        name=name, email=email, password=password, campus=campus, year=year,
-        consent_given_at=now_iso(),
+        name=name, edu_email=edu_email, password=password, campus=campus,
+        year=year, consent_given_at=now_iso(),
     )
-    _send_verification(student)
-    return render_template("verify_pending.html", email=student.email)
+    _send_edu_verification(student)
+    return render_template(
+        "verify_pending.html", email=student.edu_email,
+        blurb="This confirms you're a UC student. After clicking it you'll "
+              "add the personal email you'll actually log in with.",
+    )
 
 
-@auth_bp.route("/verify/<token>")
-def verify_email(token):
-    try:
-        student_id = _serializer().loads(token, max_age=VERIFY_TOKEN_MAX_AGE)
-    except SignatureExpired:
-        flash("That verification link has expired. Request a new one below.", "error")
+@auth_bp.route("/verify/edu/<token>")
+def verify_edu(token):
+    student_id, error = _load_token("edu-verify", token)
+    if error:
+        flash(error, "error")
         return redirect(url_for("auth.login"))
-    except BadSignature:
-        flash("Invalid verification link.", "error")
-        return redirect(url_for("auth.login"))
-
-    student = repository.mark_email_verified(student_id)
+    student = repository.mark_edu_verified(student_id)
     if not student:
         flash("Invalid verification link.", "error")
         return redirect(url_for("auth.login"))
-    flash("Email verified — you can log in now.", "success")
+
+    if student.is_fully_active:
+        flash("Your account is already active — log in with your personal email.", "success")
+        return redirect(url_for("auth.login"))
+
+    # Limited onboarding session: allowed to finish setup, not logged in.
+    session.clear()
+    session["onboarding_student_id"] = student.id
+    flash("Campus email verified — one more step.", "success")
+    return redirect(url_for("auth.personal_email_step"))
+
+
+# --- Step 2: mandatory personal email, own verification ---
+
+@auth_bp.route("/onboarding/personal-email", methods=["GET", "POST"])
+def personal_email_step():
+    student = None
+    if session.get("onboarding_student_id"):
+        student = repository.get_student_by_id(session["onboarding_student_id"])
+    if not student or not student.edu_verified:
+        flash("Use 'Resume setup' on the login page to continue where you left off.", "error")
+        return redirect(url_for("auth.login"))
+
+    if request.method == "GET":
+        return render_template("personal_email.html", student=student)
+
+    personal_email = (request.form.get("personal_email") or "").strip().lower()
+
+    def fail(message):
+        flash(message, "error")
+        return render_template("personal_email.html", student=student), 400
+
+    if "@" not in personal_email:
+        return fail("Enter a valid email address.")
+    if personal_email == student.edu_email:
+        return fail("Your personal email must be different from your campus email — "
+                    "it's what you'll use to log in after you graduate or transfer.")
+    existing_personal = repository.get_student_by_personal_email(personal_email)
+    if existing_personal and existing_personal.id != student.id:
+        return fail("That email is already in use on another account.")
+    existing_edu = repository.get_student_by_edu_email(personal_email)
+    if existing_edu and existing_edu.id != student.id:
+        return fail("That email is already in use on another account.")
+
+    student = repository.set_personal_email(student.id, personal_email)
+    _send_personal_verification(student)
+    return render_template(
+        "verify_pending.html", email=student.personal_email,
+        blurb="Click it to activate your account, then log in with this "
+              "personal email and your password.",
+    )
+
+
+@auth_bp.route("/verify/personal/<token>")
+def verify_personal(token):
+    payload, error = _load_token("personal-verify", token)
+    if error:
+        flash(error, "error")
+        return redirect(url_for("auth.login"))
+
+    student = repository.get_student_by_id((payload or {}).get("sid"))
+    # Token is bound to the address it was sent to; a later address change
+    # invalidates old links.
+    if not student or student.personal_email != (payload or {}).get("email"):
+        flash("Invalid verification link.", "error")
+        return redirect(url_for("auth.login"))
+
+    repository.mark_personal_verified(student.id)
+    session.pop("onboarding_student_id", None)
+    flash("Account active — log in with your personal email.", "success")
     return redirect(url_for("auth.login"))
 
+
+# --- Resume / resend paths (no dead ends, no enumeration) ---
 
 @auth_bp.route("/resend-verification", methods=["POST"])
 def resend_verification():
+    """Resend the edu link for accounts that never verified Step 1."""
     email = (request.form.get("email") or "").strip().lower()
-    student = repository.get_student_by_email(email) if email else None
-    if student and not student.email_verified:
-        _send_verification(student)
-    # Same message regardless — no account enumeration.
+    student = repository.get_student_by_edu_email(email) if email else None
+    if student and not student.edu_verified:
+        _send_edu_verification(student)
     flash("If that address has an unverified account, a new link was sent.", "success")
     return redirect(url_for("auth.login"))
 
+
+@auth_bp.route("/resume-setup", methods=["POST"])
+def resume_setup():
+    """Password-authenticated re-entry into whichever step is unfinished."""
+    edu_email = (request.form.get("edu_email") or "").strip().lower()
+    password = request.form.get("password") or ""
+    student = repository.get_student_by_edu_email(edu_email)
+
+    if not student or not student.check_password(password):
+        flash("Invalid campus email or password.", "error")
+        return render_template("login.html"), 401
+
+    if student.is_fully_active:
+        flash("Your account is already active — log in with your personal email.", "success")
+        return redirect(url_for("auth.login"))
+
+    if not student.edu_verified:
+        _send_edu_verification(student)
+        flash("We re-sent the verification link to your campus email.", "success")
+        return redirect(url_for("auth.login"))
+
+    if student.personal_email and not student.personal_verified:
+        _send_personal_verification(student)
+
+    session.clear()
+    session["onboarding_student_id"] = student.id
+    return redirect(url_for("auth.personal_email_step"))
+
+
+# --- Step 3 onward: login is personal_email + password ---
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -131,14 +258,14 @@ def login():
 
     email = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""
-    student = repository.get_student_by_email(email)
+    student = repository.get_student_by_personal_email(email)
 
     if not student or not student.check_password(password):
-        flash("Invalid email or password.", "error")
+        flash("Invalid email or password. (Log in with your personal email, "
+              "not your campus address.)", "error")
         return render_template("login.html"), 401
-    if not student.email_verified:
-        flash("Verify your campus email before logging in — check your inbox "
-              "or request a new link below.", "error")
+    if not student.is_fully_active:
+        flash("Your account setup isn't finished — use 'Resume setup' below.", "error")
         return render_template("login.html"), 403
 
     session.clear()
