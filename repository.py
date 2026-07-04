@@ -52,9 +52,12 @@ def set_course_visibility(student_id, visibility):
 
 
 def delete_student_and_data(student_id):
-    """CCPA deletion cascade (spec §6.7): enrollments, help requests +
-    responses (both authored and received on own requests), interaction_log
-    rows, then the student row itself."""
+    """CCPA deletion (spec §6.7, amended by Makai 2026-07-03): fully delete
+    the student's own data — enrollments, interaction logs, and every
+    response they authored anywhere — but ANONYMIZE their authored help
+    requests (student_id -> NULL) so other students' responses on them
+    survive. No identifier remains that can re-link the request to the
+    deleted account."""
     student = db.session.get(Student, student_id)
     if not student:
         return False
@@ -62,15 +65,20 @@ def delete_student_and_data(student_id):
     Enrollment.query.filter_by(student_id=student_id).delete()
     InteractionLog.query.filter_by(student_id=student_id).delete()
     HelpResponse.query.filter_by(student_id=student_id).delete()
-
-    own_requests = HelpRequest.query.filter_by(student_id=student_id).all()
-    for req in own_requests:
-        HelpResponse.query.filter_by(request_id=req.id).delete()
-        db.session.delete(req)
+    HelpRequest.query.filter_by(student_id=student_id).update({"student_id": None})
 
     db.session.delete(student)
     db.session.commit()
     return True
+
+
+def mark_email_verified(student_id):
+    student = db.session.get(Student, student_id)
+    if not student:
+        return None
+    student.email_verified = True
+    db.session.commit()
+    return student
 
 
 # --- Courses ---

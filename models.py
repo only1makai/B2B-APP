@@ -40,6 +40,9 @@ class Student(db.Model):
     consent_given_at = db.Column(db.String(40), nullable=True)
     # FERPA user control: "hidden" students never appear in peer discovery.
     course_visibility = db.Column(db.String(10), nullable=False, default="peers")
+    # Campus-email verification gate: unverified accounts cannot log in and
+    # must never surface in peer discovery.
+    email_verified = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.String(40), nullable=False, default=now_iso)
 
     @validates("campus")
@@ -121,7 +124,9 @@ class HelpRequest(db.Model):
     __tablename__ = "help_requests"
 
     id = db.Column(db.String(36), primary_key=True, default=new_uuid)
-    student_id = db.Column(db.String(36), db.ForeignKey("students.id"), nullable=False)
+    # Nullable: account deletion anonymizes authorship (student_id -> NULL,
+    # rendered as "Deleted User") so other students' responses survive.
+    student_id = db.Column(db.String(36), db.ForeignKey("students.id"), nullable=True)
     course_id = db.Column(db.String(36), db.ForeignKey("courses.id"), nullable=False)
     topic = db.Column(db.String(200), nullable=False)
     body = db.Column(db.Text, nullable=False)
