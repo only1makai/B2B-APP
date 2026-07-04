@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Delete account — B2B{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Delete your account</h1>
+  <p>This permanently removes your profile, enrollments, activity logs, and
+     every response you've written. Help requests you posted stay on the board
+     with your name removed ("Deleted User") so classmates' answers aren't
+     destroyed. This cannot be undone.</p>
+  <form method="post" action="{{ url_for('auth.delete_account') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="checkbox">
+      <input type="checkbox" name="confirm_delete" value="yes">
+      I understand — delete my account and my data.
+    </label>
+    <button type="submit" class="danger">Delete my account</button>
+    <p class="muted"><a href="{{ url_for('students.dashboard') }}">Never mind, take me back</a></p>
+  </form>
+</div>
+{% endblock %}

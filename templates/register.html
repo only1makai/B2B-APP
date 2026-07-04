@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Register — B2B{% endblock %}
+{% block content %}
+<h1>Create your B2B account</h1>
+
+<form method="post" action="{{ url_for('auth.register') }}" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Name
+    <input type="text" name="name" required value="{{ request.form.get('name', '') }}">
+  </label>
+  <label>UC campus email
+    <input type="email" name="email" required value="{{ request.form.get('email', '') }}"
+           placeholder="you@ucsc.edu">
+  </label>
+  <label>Password <span class="muted">(8+ characters)</span>
+    <input type="password" name="password" required minlength="8" autocomplete="new-password">
+  </label>
+  <label>Campus
+    <select name="campus" required>
+      <option value="" disabled {% if not request.form.get('campus') %}selected{% endif %}>Select campus</option>
+      {% for campus in campuses %}
+        <option value="{{ campus }}" {% if request.form.get('campus') == campus %}selected{% endif %}>{{ campus }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Year
+    <select name="year" required>
+      {% for y in ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'] %}
+        <option value="{{ y }}" {% if request.form.get('year') == y %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <fieldset class="consent">
+    <legend>Education records consent (FERPA)</legend>
+    <p>
+      B2B matches you with peers by comparing the courses you add against
+      equivalent courses at other UC campuses. Your course list is an
+      education record: it is shown only to other verified students, only
+      while your visibility is set to “peers”, and you can hide it or delete
+      your account (and all your data) at any time in Settings.
+    </p>
+    <label class="checkbox">
+      <input type="checkbox" name="ferpa_consent" value="yes">
+      I consent to B2B storing my course enrollments and showing them to
+      other verified UC students for peer matching.
+    </label>
+  </fieldset>
+
+  <button type="submit" class="primary">Create account</button>
+  <p class="muted">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+</form>
+{% endblock %}

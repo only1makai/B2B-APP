@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Check your email — B2B{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Check your inbox</h1>
+  <p>We sent a verification link to <strong>{{ email }}</strong>.
+     Click it within 24 hours to activate your account.</p>
+  <p class="muted">Wrong address or no email? You can request a new link from the
+     <a href="{{ url_for('auth.login') }}">login page</a>.</p>
+</div>
+{% endblock %}

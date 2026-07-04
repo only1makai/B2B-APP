@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Log in — B2B{% endblock %}
+{% block content %}
+<h1>B2B</h1>
+<p class="muted">Back to back: two students, two campuses, one course.</p>
+
+<form method="post" action="{{ url_for('auth.login') }}" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <h2>Log in</h2>
+  <label>Campus email
+    <input type="email" name="email" required autocomplete="username">
+  </label>
+  <label>Password
+    <input type="password" name="password" required autocomplete="current-password">
+  </label>
+  <button type="submit" class="primary">Log in</button>
+  <p class="muted">New here? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
+</form>
+
+<details class="card">
+  <summary>Didn't get your verification email?</summary>
+  <form method="post" action="{{ url_for('auth.resend_verification') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Campus email
+      <input type="email" name="email" required>
+    </label>
+    <button type="submit">Resend verification link</button>
+  </form>
+</details>
+{% endblock %}

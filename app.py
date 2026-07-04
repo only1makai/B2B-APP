@@ -1,7 +1,10 @@
-from flask import Flask
+from flask import Flask, redirect, session, url_for
+from flask_wtf import CSRFProtect
 
 from config import DevConfig
 from models import db
+
+csrf = CSRFProtect()
 
 
 def create_app(config_class=DevConfig):
@@ -9,13 +12,22 @@ def create_app(config_class=DevConfig):
     app.config.from_object(config_class)
 
     db.init_app(app)
+    csrf.init_app(app)
+
+    from routes.auth import auth_bp
+    from routes.students import students_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(students_bp)
+
     with app.app_context():
         db.create_all()
 
-    # CSRF and blueprints arrive in later phases.
     @app.route("/")
-    def hello():
-        return "B2B — scaffold OK. Phases 3+ bring the real app."
+    def index():
+        if session.get("student_id"):
+            return redirect(url_for("students.dashboard"))
+        return redirect(url_for("auth.login"))
 
     return app
 

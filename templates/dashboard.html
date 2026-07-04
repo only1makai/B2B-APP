@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — B2B{% endblock %}
+{% block content %}
+<header class="topbar">
+  <h1>B2B</h1>
+  <form method="post" action="{{ url_for('auth.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit">Log out</button>
+  </form>
+</header>
+
+<div class="card">
+  <h2>Hey {{ student.name }} 👋</h2>
+  <p>{{ student.campus }} · {{ student.year }}</p>
+  <p class="muted">Peer discovery lands here once courses and equivalencies ship
+     (Phases 4–7).</p>
+</div>
+
+<div class="card">
+  <h3>Account</h3>
+  <p><a href="{{ url_for('auth.delete_account') }}">Delete my account and data</a></p>
+</div>
+{% endblock %}

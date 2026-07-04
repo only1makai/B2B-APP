@@ -19,6 +19,14 @@ class Config:
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")  # optional: app degrades to cache
     LOG_ENC_KEY = os.environ.get("LOG_ENC_KEY")        # Fernet key for interaction_log payloads
 
+    # Outbound mail (verification links). Unset SMTP_HOST => mailer logs
+    # messages instead of sending, so dev runs keyless.
+    SMTP_HOST = os.environ.get("SMTP_HOST")
+    SMTP_PORT = os.environ.get("SMTP_PORT", "587")
+    SMTP_USERNAME = os.environ.get("SMTP_USERNAME")
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+    MAIL_FROM = os.environ.get("MAIL_FROM", "no-reply@b2b.local")
+
     DEBUG = False
 
 
