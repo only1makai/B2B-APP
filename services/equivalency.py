@@ -12,6 +12,75 @@ at the bottom of this file.
 import repository
 
 SURFACE_MIN_CONFIDENCE = 0.5  # spec §8 peer-discovery surfacing threshold
+
+# STOP-CONDITION RESOLVED (Phase 7, 2026-07-08): peer card contents were
+# escalated as a real privacy decision rather than assumed. Answer: full
+# `name`, and social handles only as the contact path (no email fallback,
+# no anonymized handle) — matches spec §8 literally.
+
+
+def find_peer_matches(student_id):
+    """Cross-campus peer discovery (spec §8), built entirely on the Phase 5
+    equivalency engine — no Gemini involvement.
+
+    For each of the student's enrollments, finds other students at a
+    DIFFERENT campus enrolled in an equivalent course, where the
+    equivalency clears both gates: confidence >= SURFACE_MIN_CONFIDENCE
+    and is_surfaceable() (the denials-outweigh-confirmations cutoff from
+    §7.4). Excludes: the student themself, hidden-visibility peers, and
+    peers whose account isn't fully verified (edu + personal) yet — an
+    account that can't log in shouldn't be discoverable either.
+
+    Returns a list grouped by the student's own course:
+      [{"my_course": Course, "matches": [
+          {"peer": Student, "matched_course": Course,
+           "confidence": float, "equivalency_id": str}, ...
+      ]}, ...]
+    Groups with zero matches are omitted.
+    """
+    my_enrollments = repository.get_enrollments_for_student(student_id)
+
+    grouped = []
+    for enrollment in my_enrollments:
+        my_course = enrollment.course
+        equivalencies = repository.get_equivalencies_for_course(
+            my_course.id, min_confidence=SURFACE_MIN_CONFIDENCE
+        )
+
+        matches = []
+        for eq in equivalencies:
+            if not is_surfaceable(eq):
+                continue
+
+            other_course_id = (
+                eq.course_b_id if eq.course_a_id == my_course.id else eq.course_a_id
+            )
+            other_course = repository.get_course_by_id(other_course_id)
+            if not other_course or other_course.campus == my_course.campus:
+                # Peer discovery is explicitly cross-campus (spec §8);
+                # same-campus equivalency rows (if any ever exist) don't
+                # produce peer matches here.
+                continue
+
+            for other_enrollment in repository.get_enrollments_for_course(other_course.id):
+                peer = other_enrollment.student
+                if peer.id == student_id:
+                    continue
+                if peer.course_visibility == "hidden":
+                    continue
+                if not peer.is_fully_active:
+                    continue
+                matches.append({
+                    "peer": peer,
+                    "matched_course": other_course,
+                    "confidence": eq.confidence,
+                    "equivalency_id": eq.id,
+                })
+
+        if matches:
+            grouped.append({"my_course": my_course, "matches": matches})
+
+    return grouped
 CONFIDENCE_STEP = 0.05
 CONFIDENCE_FLOOR = 0.01
 CONFIDENCE_CAP = 0.99

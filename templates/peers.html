@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Peers{% endblock %}
+{% block content %}
+<header class="topbar">
+  <h1>Peers</h1>
+  <nav>
+    <a href="{{ url_for('students.dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('courses.my_courses') }}">My Courses</a>
+  </nav>
+</header>
+
+{% if not groups %}
+  <div class="card">
+    <p class="muted">No peer matches yet. Add courses on the
+       <a href="{{ url_for('courses.my_courses') }}">My Courses</a> page —
+       matches appear once one of your courses has a mapped equivalent at
+       another campus.</p>
+  </div>
+{% endif %}
+
+{% for group in groups %}
+  <div class="card">
+    <h2>{{ group.my_course.campus }} {{ group.my_course.course_code }} — {{ group.my_course.title }}</h2>
+    {% for match in group.matches %}
+      <div class="peer-card">
+        <p><strong>{{ match.peer.name }}</strong> — {{ match.peer.campus }}, {{ match.peer.year }}</p>
+        {% if match.peer.interests %}
+          <p class="muted">Interests: {{ match.peer.interests | join(', ') }}</p>
+        {% endif %}
+        <p class="muted">
+          Matched via {{ match.matched_course.campus }} {{ match.matched_course.course_code }}
+          — {{ (match.confidence * 100) | round | int }}% confidence
+        </p>
+        {% if match.peer.social_handles %}
+          <p class="muted">
+            {% for platform, handle in match.peer.social_handles.items() %}
+              {{ platform }}: {{ handle }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </p>
+        {% else %}
+          <p class="muted">No contact info added yet.</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('courses.confirm_equivalency', equivalency_id=match.equivalency_id) }}"
+              style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit">This matches</button>
+        </form>
+        <form method="post" action="{{ url_for('courses.deny_equivalency', equivalency_id=match.equivalency_id) }}"
+              style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit">Not equivalent</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+{% endblock %}

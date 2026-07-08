@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}My Courses{% endblock %}
+{% block content %}
+<header class="topbar">
+  <h1>My Courses</h1>
+  <nav>
+    <a href="{{ url_for('students.dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('students.peers') }}">Peers</a>
+  </nav>
+</header>
+
+<div class="card">
+  <h2>Currently enrolled</h2>
+  {% if enrollments %}
+    <ul>
+      {% for enr in enrollments %}
+        <li>
+          {{ enr.course.campus }} {{ enr.course.course_code }} — {{ enr.course.title }}
+          ({{ enr.term }})
+          <form method="post" action="{{ url_for('courses.remove_course', enrollment_id=enr.id) }}"
+                style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Remove</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No courses yet — add one below to start seeing peers.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Add a course</h2>
+  <form method="post" action="{{ url_for('courses.add_course') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Course
+      <select name="course_id" required>
+        <option value="" disabled selected>Select a course</option>
+        {% for campus, courses in catalog.items() %}
+          <optgroup label="{{ campus }}">
+            {% for course in courses %}
+              <option value="{{ course.id }}">{{ course.course_code }} — {{ course.title }}</option>
+            {% endfor %}
+          </optgroup>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Term
+      <input type="text" name="term" value="{{ default_term }}" required>
+    </label>
+    <button type="submit" class="primary">Add course</button>
+  </form>
+</div>
+{% endblock %}

@@ -149,6 +149,29 @@ def get_enrollments_for_course(course_id):
     return Enrollment.query.filter_by(course_id=course_id).all()
 
 
+def get_enrollment_by_id(enrollment_id):
+    return db.session.get(Enrollment, enrollment_id)
+
+
+def delete_enrollment(student_id, enrollment_id):
+    """Ownership-checked: only the enrolling student can remove it."""
+    enr = Enrollment.query.filter_by(id=enrollment_id, student_id=student_id).first()
+    if not enr:
+        return False
+    db.session.delete(enr)
+    db.session.commit()
+    return True
+
+
+def get_all_courses_by_campus():
+    """Courses grouped by campus, sorted, for the course-management view."""
+    courses = Course.query.order_by(Course.campus, Course.course_code).all()
+    grouped = {}
+    for c in courses:
+        grouped.setdefault(c.campus, []).append(c)
+    return grouped
+
+
 # --- Equivalencies ---
 
 def canonical_pair(course_x_id, course_y_id):

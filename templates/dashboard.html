@@ -3,6 +3,10 @@
 {% block content %}
 <header class="topbar">
   <h1>B2B</h1>
+  <nav>
+    <a href="{{ url_for('courses.my_courses') }}">My Courses</a>
+    <a href="{{ url_for('students.peers') }}">Peers</a>
+  </nav>
   <form method="post" action="{{ url_for('auth.logout') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit">Log out</button>
@@ -12,8 +16,10 @@
 <div class="card">
   <h2>Hey {{ student.name }} 👋</h2>
   <p>{{ student.campus }} · {{ student.year }}</p>
-  <p class="muted">Peer discovery lands here once courses and equivalencies ship
-     (Phases 4–7).</p>
+  <p class="muted">
+    <a href="{{ url_for('courses.my_courses') }}">Manage your courses</a> or
+    <a href="{{ url_for('students.peers') }}">see your peer matches</a>.
+  </p>
 </div>
 
 <div class="card">
