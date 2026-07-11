@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Log in — B2B{% endblock %}
+{% block title %}Log in — Campus Crosswalk{% endblock %}
 {% block content %}
-<h1>B2B</h1>
-<p class="muted">Back to back: two students, two campuses, one course.</p>
+<h1>Campus Crosswalk</h1>
+<p class="muted">Two students, two campuses, one course.</p>
 
 <form method="post" action="{{ url_for('auth.login') }}" class="card">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

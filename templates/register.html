@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Register — B2B{% endblock %}
+{% block title %}Register — Campus Crosswalk{% endblock %}
 {% block content %}
-<h1>Create your B2B account</h1>
+<h1>Create your Campus Crosswalk account</h1>
 
 <form method="post" action="{{ url_for('auth.register') }}" class="card">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -36,7 +36,7 @@
   <fieldset class="consent">
     <legend>Education records consent (FERPA)</legend>
     <p>
-      B2B matches you with peers by comparing the courses you add against
+      Campus Crosswalk matches you with peers by comparing the courses you add against
       equivalent courses at other UC campuses. Your course list is an
       education record: your <strong>name</strong>, campus, year, interests,
       and course list are shown together to other verified students as a
@@ -45,7 +45,7 @@
     </p>
     <label class="checkbox">
       <input type="checkbox" name="ferpa_consent" value="yes">
-      I consent to B2B storing my course enrollments and showing my name
+      I consent to Campus Crosswalk storing my course enrollments and showing my name
       alongside them to other verified UC students for peer matching.
     </label>
   </fieldset>

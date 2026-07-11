@@ -40,9 +40,9 @@ def send_email(to_address, subject, body):
 
 def send_verification_email(to_address, verify_url):
     body = (
-        "Welcome to B2B!\n\n"
+        "Welcome to Campus Crosswalk!\n\n"
         "Confirm your campus email to activate your account:\n\n"
         f"    {verify_url}\n\n"
         "The link expires in 24 hours. If you didn't sign up, ignore this email."
     )
-    return send_email(to_address, "Verify your B2B account", body)
+    return send_email(to_address, "Verify your Campus Crosswalk account", body)

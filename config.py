@@ -25,7 +25,7 @@ class Config:
     SMTP_PORT = os.environ.get("SMTP_PORT", "587")
     SMTP_USERNAME = os.environ.get("SMTP_USERNAME")
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
-    MAIL_FROM = os.environ.get("MAIL_FROM", "no-reply@b2b.local")
+    MAIL_FROM = os.environ.get("MAIL_FROM", "no-reply@campus-crosswalk.local")
 
     DEBUG = False
 

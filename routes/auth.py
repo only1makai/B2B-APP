@@ -106,7 +106,7 @@ def register():
         return fail("Select a valid UC campus.")
     if not consent:
         return fail(
-            "B2B cannot create your account without your consent to share "
+            "Campus Crosswalk cannot create your account without your consent to share "
             "your course enrollments for peer matching (FERPA)."
         )
     if repository.get_student_by_edu_email(edu_email):
