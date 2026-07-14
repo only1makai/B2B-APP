@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink text-white antialiased;
+}
+
+/* App-wide primitives kept small; most styling is utility-first. */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+      text-sm font-medium transition-colors disabled:opacity-50
+      disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-ink hover:brightness-95;
+  }
+  .btn-ghost {
+    @apply btn border border-edge bg-panel text-white hover:bg-edge;
+  }
+  .card {
+    @apply rounded-2xl border border-edge bg-panel p-4;
+  }
+  .label {
+    @apply block text-xs font-medium uppercase tracking-wide text-mute;
+  }
+  .input {
+    @apply w-full rounded-xl border border-edge bg-ink px-3 py-2 text-sm
+      text-white outline-none focus:border-accent;
+  }
+}
